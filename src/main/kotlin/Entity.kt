@@ -36,7 +36,6 @@ class PolygonEntity(position: Vector2D, vertices: Array<Vector2D>, rotation: Dou
 
     override fun render(gc: GraphicsContext, client: Client) {
         renderer.render(gc, client)
-        KeyCode.A
     }
 
     companion object {

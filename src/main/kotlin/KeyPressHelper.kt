@@ -2,7 +2,7 @@ import javafx.scene.input.KeyCode
 
 class KeyPressHelper {
 
-    val keys: MutableList<KeyCode> = mutableListOf()
+    val keys: MutableSet<KeyCode> = mutableSetOf()
 
     fun startPress(key: KeyCode) {
         println("started: ${key.char}")

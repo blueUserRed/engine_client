@@ -1,4 +1,5 @@
 import javafx.scene.canvas.GraphicsContext
+import javafx.scene.image.Image
 import javafx.scene.paint.Color
 import utils.Vector2D
 
@@ -32,6 +33,19 @@ class PolygonRenderer (val ent: PolygonEntity) : Renderer {
         gc.fill = Color.valueOf("#00ff00")
         val centroid = Renderer.gameCoordsToScreenCoords(this.ent.position, client)
         gc.fillOval(centroid.x - 5, centroid.y - 5, 10.0, 10.0)
+    }
+
+}
+
+class PolyImageRenderer(val ent: PolygonEntity, val image: Image) : Renderer {
+
+    override fun render(gc: GraphicsContext, client: Client) {
+        val verts = Renderer.gameCoordsToScreenCoords(ent.verticesAbsolute, client)
+        gc.beginPath()
+        gc.moveTo(verts[0].x, verts[0].y)
+        for (i in 1 until verts.size) gc.lineTo(verts[i].x, verts[i].y)
+        gc.clip()
+        //TODO: continue
     }
 
 }

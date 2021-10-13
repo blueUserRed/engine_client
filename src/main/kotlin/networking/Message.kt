@@ -69,7 +69,7 @@ class FullUpdateMessage(private val entities: MutableList<Entity>) : Message() {
     }
 }
 
-class ClientInfoMessage(private val keys: List<KeyCode>) : Message() {
+class ClientInfoMessage(private val keys: Set<KeyCode>) : Message() {
 
     override val identifier: String = "clInfo"
 
@@ -86,7 +86,7 @@ class ClientInfoMessage(private val keys: List<KeyCode>) : Message() {
     companion object {
 
         fun deserialize(input: DataInputStream): ClientInfoMessage? {
-            val keys = mutableListOf<KeyCode>()
+            val keys = mutableSetOf<KeyCode>()
             val num = input.readInt()
             for (i in 0 until num) {
                 keys.add(getKeyFromCode(input.readInt()) ?: return null)

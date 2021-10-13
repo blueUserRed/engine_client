@@ -95,7 +95,11 @@ abstract class Client {
     private fun render() {
         gc.fill = Color.valueOf("#000000")
         gc.fillRect(0.0, 0.0, targetCanvas.width, targetCanvas.height)
-        for (entity in entities) entity.render(gc, this)
+        for (entity in entities) {
+            gc.save()
+            entity.render(gc, this)
+            gc.restore()
+        }
     }
 
     fun close() {
