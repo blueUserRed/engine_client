@@ -1,3 +1,4 @@
+import javafx.application.Platform
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
 import javafx.scene.layout.Pane
@@ -5,7 +6,9 @@ import javafx.scene.paint.Color
 import networking.ClientInfoMessage
 import networking.Message
 import networking.ServerConnection
+import utils.Stopwatch
 import java.io.DataInputStream
+import java.util.*
 
 abstract class Client {
 
@@ -17,7 +20,13 @@ abstract class Client {
     var entities: MutableList<Entity> = mutableListOf()
         private set
 
-    private var setEntitiesCache: MutableList<Entity>? = null
+    private var setAllEntitiesCache: MutableList<Entity>? = null
+    private var addEntitiesCache: MutableList<Entity> = mutableListOf()
+
+    private var lastFrameCountTime: Long = 0
+    var frameRate: Int = 0
+        private set
+    private var curFrameCount: Int = 0
 
     val keyPressHelper: KeyPressHelper = KeyPressHelper()
 
@@ -45,8 +54,11 @@ abstract class Client {
     var gameDeserializer: GameDeserializer = MainGameDeserializer()
     private val entityDeserializers: MutableMap<Int, EntityDeserializer> = mutableMapOf()
 
+    private val rendererDeserializers: MutableMap<Int, RendererDeserializer> = mutableMapOf()
+
     fun launch(args: Array<String>) {
         this.args = args
+        Renderer.registerRendererDeserializers(this)
         GameDeserializer.registerDeserializers(this)
         MainWindow().create(args, this)
     }
@@ -77,22 +89,35 @@ abstract class Client {
         entityDeserializers[identifier] = entityDeserializer
     }
 
-    fun getEntityDeserializer(identifier: Int): EntityDeserializer? {
-        return entityDeserializers[identifier]
+    fun getEntityDeserializer(identifier: Int): EntityDeserializer? = entityDeserializers[identifier]
+
+    fun addRendererDeserializer(identifier: Int, rendererDeserializer: RendererDeserializer) {
+        rendererDeserializers[identifier] = rendererDeserializer
     }
 
+    fun getRendererDeserializer(identifier: Int): RendererDeserializer? = rendererDeserializers[identifier]
+
     fun setAllEntities(entities: MutableList<Entity>) {
-        this.setEntitiesCache = entities
+        this.setAllEntitiesCache = entities
     }
 
     internal fun tick() {
+        curFrameCount++
         val message = ClientInfoMessage(keyPressHelper.keys)
         serverConnection?.send(message)
-        if (setEntitiesCache != null) entities = setEntitiesCache as MutableList<Entity>
+        if (setAllEntitiesCache != null) entities = setAllEntitiesCache as MutableList<Entity>
+        for (entity in addEntitiesCache) entities.add(entity)
+        addEntitiesCache.clear()
         render()
     }
 
     private fun render() {
+        if (lastFrameCountTime + 1000 <= System.currentTimeMillis()) {
+            lastFrameCountTime = System.currentTimeMillis()
+            frameRate = curFrameCount
+            println(frameRate)
+            curFrameCount = 0
+        }
         gc.fill = Color.valueOf("#000000")
         gc.fillRect(0.0, 0.0, targetCanvas.width, targetCanvas.height)
         for (entity in entities) {
@@ -107,8 +132,18 @@ abstract class Client {
         serverConnection?.close()
     }
 
+    fun getEntity(uuid: UUID): Entity? {
+        for (ent in entities) if (ent.uuid == uuid) return ent
+        return null
+    }
+
+    fun addEntity(entity: Entity) {
+        addEntitiesCache.add(entity)
+    }
+
     abstract fun initialize()
 
 }
 
-typealias EntityDeserializer = (DataInputStream) -> Entity?
+typealias EntityDeserializer = (input: DataInputStream) -> Entity?
+typealias RendererDeserializer = (input: DataInputStream, ent: Entity) -> Renderer?

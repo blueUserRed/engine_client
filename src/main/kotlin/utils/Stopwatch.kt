@@ -7,6 +7,17 @@ class Stopwatch {
 
     private var pauseTimes: MutableList<Pair<Long, Long?>> = mutableListOf()
 
+    val time: Long?
+        get() {
+            if (startTime == null || endTime == null) return null
+            var time = endTime!! - startTime!!
+            for (pauseTime in pauseTimes) {
+                if (pauseTime.second == null) continue
+                time -= pauseTime.second!! - pauseTime.first
+            }
+            return time
+        }
+
     fun start() {
         this.startTime = System.currentTimeMillis()
     }
@@ -25,16 +36,6 @@ class Stopwatch {
         pauseTimes[pauseTimes.size - 1] = Pair(pauseTimes[pauseTimes.size - 1].first, System.currentTimeMillis())
     }
 
-    fun getTime(): Long? {
-        if (startTime == null || endTime == null) return null
-        var time = endTime!! - startTime!!
-        for (pauseTime in pauseTimes) {
-            if (pauseTime.second == null) continue
-            time -= pauseTime.second!! - pauseTime.first
-        }
-        return time
-    }
-
     companion object {
 
         fun time(task: () -> Unit): Long {
@@ -42,7 +43,15 @@ class Stopwatch {
             stopwatch.start()
             task()
             stopwatch.stop()
-            return stopwatch.getTime() ?: return 0 //shouldn't happen
+            return stopwatch.time ?: return 0 //shouldn't happen
+        }
+
+        fun <T> time(task: () -> T): Pair<T, Long> {
+            val stopwatch = Stopwatch()
+            stopwatch.start()
+            val result = task()
+            stopwatch.stop()
+            return Pair(result, stopwatch.time ?: 0)
         }
 
     }

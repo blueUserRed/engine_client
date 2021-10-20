@@ -1,10 +1,14 @@
 import java.io.DataInputStream
+import java.util.*
 
 abstract class GameDeserializer {
+
     abstract fun deserialize(input: DataInputStream, client: Client): MutableList<Entity>?
+    abstract fun deserializeInc(input: DataInputStream, client: Client): Boolean
+
     companion object {
         internal fun registerDeserializers(client: Client) {
-            client.addEntityDeserializer(PolygonEntity.identifier, PolygonEntity::deserialize)
+            client.addEntityDeserializer(PolygonEntity.identifier) { PolygonEntity.deserialize(it, client) }
         }
     }
 }
@@ -29,6 +33,35 @@ class MainGameDeserializer : GameDeserializer() {
             ents.add(ent)
         }
         return ents
+    }
+
+    override fun deserializeInc(input: DataInputStream, client: Client): Boolean {
+        var tag = input.readInt()
+        while (tag != Int.MIN_VALUE) {
+            val isNew = input.readBoolean()
+            if (isNew) {
+                val deserializer = client.getEntityDeserializer(tag) ?: run {
+                    Conf.logger.warning("Couldn't deserialize Entity with unknown identifier '$tag'")
+                    return false
+                }
+                client.addEntity(deserializer(input) ?: run {
+                    Conf.logger.warning("Couldnt deserialize Enitity with identifier '$tag'")
+                    return false
+                })
+                tag = input.readInt()
+                continue
+            }
+            val uuid = UUID(input.readLong(), input.readLong())
+            val ent = client.getEntity(uuid)
+            if (ent == null) {
+                Conf.logger.warning("Couldn't deserialize incremental message because " +
+                        "there is no entity with uuid '${uuid}'")
+                return false
+            }
+            ent.deserializeInc(input, client)
+            tag = input.readInt()
+        }
+        return true
     }
 
 }

@@ -135,3 +135,7 @@ fun Long.toByteArray(): Array<Byte> {
     buffer[7] = (this ushr 56).toByte()
     return buffer
 }
+
+fun Double.toDeg() = this * 57.2958
+
+fun Double.toRad() = this / 57.2958

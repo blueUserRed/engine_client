@@ -31,12 +31,46 @@ class ServerConnection(val ip: String, val port: Int, val client: Client) : Thre
                 if (deserializer == null) {
                     Conf.logger.log(Level.WARNING, "Client received message with unknown " +
                             "identifier '$identifier'")
+                    resync(input)
                     continue
                 }
-                val message = deserializer(input) ?: continue
+                val message = deserializer(input)
+                if (message == null) {
+                    resync(input)
+                    continue
+                }
                 message.execute(client)
+                for (i in 1..7) input.readByte() //trailer
             } catch (e: IOException) { break }
         }
+    }
+
+    private fun resync(input: DataInputStream) {
+        Conf.logger.warning("ServerConnection got desynced, now attempting to resync...")
+        while (true) {
+            if (input.readByte() != 0xff.toByte()) continue
+            if (input.readByte() != 0x00.toByte()) continue
+            if (input.readByte() != 0xff.toByte()) continue
+            if (input.readByte() != 0x00.toByte()) continue
+
+            val byte = input.readByte()
+            if (byte == 0x01.toByte()) return
+            if (byte != 0xff.toByte()) continue
+
+            if (input.readByte() != 0x00.toByte()) continue
+            if (input.readByte() != 0x01.toByte()) continue
+            return
+        }
+    }
+
+    private fun sendTrailer(output: DataOutputStream) {
+        output.writeByte(0xff)
+        output.writeByte(0x00)
+        output.writeByte(0xff)
+        output.writeByte(0x00)
+        output.writeByte(0xff)
+        output.writeByte(0x00)
+        output.writeByte(0x01)
     }
 
     fun addMessageDeserializer(identifier: String, deserializer: ClientMessageDeserializer) {
@@ -52,6 +86,7 @@ class ServerConnection(val ip: String, val port: Int, val client: Client) : Thre
         output.writeInt(client.messageTag ?: 0)
         output.writeUTF(message.identifier)
         message.serialize(output)
+        sendTrailer(output)
         output.flush()
     }
 

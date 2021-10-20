@@ -1,15 +1,10 @@
 import javafx.scene.canvas.GraphicsContext
-import javafx.scene.input.KeyCode
-import javafx.scene.paint.Color
 import utils.Utils
 import utils.Vector2D
 import java.io.DataInputStream
-import java.lang.Math.random
+import java.util.*
 
-abstract class Entity (
-    var position: Vector2D,
-    var rotation: Double
-    ) {
+abstract class Entity(var position: Vector2D, var rotation: Double, var uuid: UUID) {
 
     abstract var renderer: Renderer
         protected set
@@ -17,13 +12,30 @@ abstract class Entity (
     abstract val identifier: Int
     abstract fun render(gc: GraphicsContext, client: Client)
 
+    open fun deserializeInc(input: DataInputStream, client: Client) {
+        var tag = input.readByte()
+        while (tag != 0xff.toByte()) {
+            when(tag) {
+                0.toByte() -> { position = Vector2D.deserialize(input)}
+                1.toByte() -> { rotation = input.readDouble() }
+                2.toByte() -> { renderer = Renderer.deserialize(input, client, this) ?: break }
+            }
+            tag = input.readByte()
+        }
+    }
+
 }
 
-class PolygonEntity(position: Vector2D, vertices: Array<Vector2D>, rotation: Double) : Entity(position, rotation) {
+class PolygonEntity(
+    position: Vector2D,
+    vertices: Array<Vector2D>,
+    rotation: Double,
+    uuid: UUID
+) : Entity(position, rotation, uuid) {
 
     val verticesRelative: Array<Vector2D> = Utils.getShapeWithCentroidZero(vertices)
 
-    override var renderer: Renderer = PolygonRenderer(this)
+    override var renderer: Renderer = PolyColorRenderer(this)
 
     override val identifier: Int = Int.MAX_VALUE
 
@@ -42,16 +54,22 @@ class PolygonEntity(position: Vector2D, vertices: Array<Vector2D>, rotation: Dou
 
         val identifier: Int = Int.MAX_VALUE
 
-        fun deserialize(input: DataInputStream): Entity? {
+        fun deserialize(input: DataInputStream, client: Client): Entity? {
+            val uuid = UUID(input.readLong(), input.readLong())
             val numVerts = input.readInt()
             val verts = Array(numVerts) { Vector2D() }
             for (i in 0 until numVerts) {
-                val vec = Vector2D.deserializer(input)
+                val vec = Vector2D.deserialize(input)
                 verts[i] = vec
             }
-            val pos = Vector2D.deserializer(input)
+            val pos = Vector2D.deserialize(input)
             val rot = input.readDouble()
-            return PolygonEntity(pos, verts, rot)
+            val polygonEntity = PolygonEntity(pos, verts, rot, uuid)
+            polygonEntity.renderer = Renderer.deserialize(input, client, polygonEntity) ?: run {
+                Conf.logger.warning("Couldn't deserialize Renderer!")
+                return null
+            }
+            return polygonEntity
         }
 
     }

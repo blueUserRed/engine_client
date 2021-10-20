@@ -81,7 +81,7 @@ class Vector2D (val x: Double, val y: Double) {
 
     companion object {
 
-        fun deserializer(input: DataInputStream): Vector2D {
+        fun deserialize(input: DataInputStream): Vector2D {
             val x = input.readDouble()
             val y = input.readDouble()
             return Vector2D(x, y)

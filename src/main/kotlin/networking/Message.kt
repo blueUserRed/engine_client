@@ -3,6 +3,7 @@ package networking
 import Client
 import Entity
 import javafx.scene.input.KeyCode
+import utils.Stopwatch
 import utils.Utils
 import java.io.DataInputStream
 import java.io.DataOutputStream
@@ -26,6 +27,9 @@ abstract class Message {
             }
             client.serverConnection?.addMessageDeserializer("clInfo") {
                 ClientInfoMessage.deserialize(it)
+            }
+            client.serverConnection?.addMessageDeserializer("incUpdt") {
+                IncrementalUpdateMessage.deserialize(it, client)
             }
         }
     }
@@ -99,6 +103,26 @@ class ClientInfoMessage(private val keys: Set<KeyCode>) : Message() {
             return null
         }
 
+    }
+
+}
+
+class IncrementalUpdateMessage : Message() {
+
+    override val identifier: String = "incUpdt"
+
+    override fun execute(client: Client) {
+        client.tick()
+    }
+
+    override fun serialize(output: DataOutputStream) {
+    }
+
+    companion object {
+        fun deserialize(input: DataInputStream, client: Client): IncrementalUpdateMessage? {
+            val success = client.gameDeserializer.deserializeInc(input, client)
+            return if (success) IncrementalUpdateMessage() else null
+        }
     }
 
 }
