@@ -52,9 +52,12 @@ abstract class Client {
         private set
 
     var gameDeserializer: GameDeserializer = MainGameDeserializer()
+
     private val entityDeserializers: MutableMap<Int, EntityDeserializer> = mutableMapOf()
 
     private val rendererDeserializers: MutableMap<Int, RendererDeserializer> = mutableMapOf()
+
+    private val resources: MutableMap<String, Resource> = mutableMapOf()
 
     fun launch(args: Array<String>) {
         this.args = args
@@ -141,9 +144,15 @@ abstract class Client {
         addEntitiesCache.add(entity)
     }
 
+    fun addResource(identifier: String, resource: Resource) {
+        resources[identifier] = resource
+    }
+
+    fun getResource(identifier: String): Resource? = resources[identifier]
+
     abstract fun initialize()
 
 }
 
 typealias EntityDeserializer = (input: DataInputStream) -> Entity?
-typealias RendererDeserializer = (input: DataInputStream, ent: Entity) -> Renderer?
+typealias RendererDeserializer = (input: DataInputStream, ent: Entity, client: Client) -> Renderer?

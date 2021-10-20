@@ -36,19 +36,19 @@ class MainGameDeserializer : GameDeserializer() {
     }
 
     override fun deserializeInc(input: DataInputStream, client: Client): Boolean {
-        var tag = input.readInt()
-        while (tag != Int.MIN_VALUE) {
+        var identifier = input.readInt()
+        while (identifier != Int.MIN_VALUE) {
             val isNew = input.readBoolean()
             if (isNew) {
-                val deserializer = client.getEntityDeserializer(tag) ?: run {
-                    Conf.logger.warning("Couldn't deserialize Entity with unknown identifier '$tag'")
+                val deserializer = client.getEntityDeserializer(identifier) ?: run {
+                    Conf.logger.warning("Couldn't deserialize Entity with unknown identifier '$identifier'")
                     return false
                 }
                 client.addEntity(deserializer(input) ?: run {
-                    Conf.logger.warning("Couldnt deserialize Enitity with identifier '$tag'")
+                    Conf.logger.warning("Couldnt deserialize Enitity with identifier '$identifier'")
                     return false
                 })
-                tag = input.readInt()
+                identifier = input.readInt()
                 continue
             }
             val uuid = UUID(input.readLong(), input.readLong())
@@ -59,7 +59,7 @@ class MainGameDeserializer : GameDeserializer() {
                 return false
             }
             ent.deserializeInc(input, client)
-            tag = input.readInt()
+            identifier = input.readInt()
         }
         return true
     }

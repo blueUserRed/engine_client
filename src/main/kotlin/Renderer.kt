@@ -1,7 +1,5 @@
 import javafx.scene.canvas.GraphicsContext
-import javafx.scene.image.Image
 import javafx.scene.paint.Color
-import utils.Utils
 import utils.Vector2D
 import utils.toDeg
 import java.io.DataInputStream
@@ -23,11 +21,9 @@ interface Renderer {
         }
 
         internal fun registerRendererDeserializers(client: Client) {
-            client.addRendererDeserializer(EmptyRenderer.identifier) { _, _ -> EmptyRenderer() }
-            client.addRendererDeserializer(PolyColorRenderer.identifier) lambda@ { input, ent ->
-                if (ent !is PolygonEntity) return@lambda null
-                PolyColorRenderer.deserialize(input, ent)
-            }
+            client.addRendererDeserializer(EmptyRenderer.identifier) { _, _, _ -> EmptyRenderer() }
+            client.addRendererDeserializer(PolyColorRenderer.identifier, PolyColorRenderer.Companion::deserialize)
+            client.addRendererDeserializer(PolyImageRenderer.identifier, PolyImageRenderer.Companion::deserialize)
         }
 
         fun deserialize(input: DataInputStream, client: Client, ent: Entity): Renderer? {
@@ -36,7 +32,7 @@ interface Renderer {
                 Conf.logger.warning("Couldn't deserialize Renderer with unknown id '$identifier'")
                 return null
             }
-            return deserializer(input, ent) ?: run {
+            return deserializer(input, ent, client) ?: run {
                 Conf.logger.warning("Couldn't deserialie Renderer with id '$identifier'")
                 return null
             }
@@ -78,7 +74,8 @@ class PolyColorRenderer(val ent: PolygonEntity) : Renderer {
 
         val identifier: Int = Int.MAX_VALUE - 1
 
-        fun deserialize(input: DataInputStream, ent: PolygonEntity): PolyColorRenderer {
+        fun deserialize(input: DataInputStream, ent: Entity, client: Client): PolyColorRenderer? {
+            if (ent !is PolygonEntity) return null
             val color = Color.color(input.readDouble(), input.readDouble(), input.readDouble())
             val renderer = PolyColorRenderer(ent)
             renderer.color = color
@@ -88,29 +85,48 @@ class PolyColorRenderer(val ent: PolygonEntity) : Renderer {
 
 }
 
-//class PolyImageRenderer(
-//    val ent: PolygonEntity,
-//    val image: Image,
-//    var offset: Vector2D,
-//    val width: Double,
-//    val height: Double) : Renderer {
-//
-//    override fun render(gc: GraphicsContext, client: Client) {
-//        val absVerts = ent.verticesAbsolute
-//        val verts = Renderer.gameCoordsToScreenCoords(absVerts, client)
-//        gc.beginPath()
-//        gc.moveTo(verts[0].x, verts[0].y)
-//        for (i in 1 until verts.size) gc.lineTo(verts[i].x, verts[i].y)
-//        gc.closePath()
-//        gc.clip()
-//        var screenTarget = Renderer.gameCoordsToScreenCoords(ent.position + offset, client)
-////        gc.rotate(ent.rotation.toDeg())
-//        gc.drawImage(image, screenTarget.x, screenTarget.y, width, height)
-////        gc.fill = Color.valueOf("#aaaa55")
-////        gc.fillRect(screenTarget.x, screenTarget.y, width, height)
-//    }
-//
-//}
+class PolyImageRenderer(
+    val ent: PolygonEntity,
+    val imageRes: ImageResource,
+    var offset: Vector2D,
+    val width: Double,
+    val height: Double) : Renderer {
+
+    override val identifier: Int = Int.MAX_VALUE - 2
+
+    override fun render(gc: GraphicsContext, client: Client) {
+        val absVerts = ent.verticesAbsolute
+        val verts = Renderer.gameCoordsToScreenCoords(absVerts, client)
+        gc.beginPath()
+        gc.moveTo(verts[0].x, verts[0].y)
+        for (i in 1 until verts.size) gc.lineTo(verts[i].x, verts[i].y)
+        gc.closePath()
+        gc.clip()
+        val screenPos = Renderer.gameCoordsToScreenCoords(ent.position, client)
+        gc.translate(screenPos.x, screenPos.y)
+        gc.rotate(ent.rotation.toDeg())
+        gc.drawImage(imageRes.image, offset.x, -offset.y, width, height)
+    }
+
+    companion object {
+
+        val identifier: Int = Int.MAX_VALUE - 2
+
+        fun deserialize(input: DataInputStream, ent: Entity, client: Client): PolyImageRenderer? {
+            if (ent !is PolygonEntity) return null
+            val offset = Vector2D.deserialize(input)
+            val width = input.readDouble()
+            val height = input.readDouble()
+            val resource = client.getResource(input.readUTF())
+            if (resource == null || resource !is ImageResource) {
+                Conf.logger.warning("Resource '$identifier' does not exist or is not ImageResource")
+                return null
+            }
+            return PolyImageRenderer(ent, resource, offset, width, height)
+        }
+    }
+}
+
 //
 //class VectorRenderer(var vec: Vector2D, var position: Vector2D) : Renderer {
 //
