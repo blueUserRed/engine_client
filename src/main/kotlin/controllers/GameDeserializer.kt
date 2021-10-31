@@ -1,3 +1,7 @@
+package controllers
+
+import Client
+import Entity
 import java.io.DataInputStream
 import java.util.*
 
@@ -9,6 +13,7 @@ abstract class GameDeserializer {
     companion object {
         internal fun registerDeserializers(client: Client) {
             client.addEntityDeserializer(PolygonEntity.identifier) { PolygonEntity.deserialize(it, client) }
+            client.addEntityDeserializer(CircleEntity.identifier) { CircleEntity.deserialize(it, client) }
         }
     }
 }

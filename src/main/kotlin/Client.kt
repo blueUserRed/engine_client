@@ -1,4 +1,7 @@
-import javafx.application.Platform
+import controllers.EntityFocusScreenController
+import controllers.GameDeserializer
+import controllers.MainGameDeserializer
+import controllers.ScrollController
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
 import javafx.scene.layout.Pane
@@ -6,7 +9,7 @@ import javafx.scene.paint.Color
 import networking.ClientInfoMessage
 import networking.Message
 import networking.ServerConnection
-import utils.Stopwatch
+import utils.Vector2D
 import java.io.DataInputStream
 import java.util.*
 
@@ -38,6 +41,9 @@ abstract class Client {
 
     private var gc: GraphicsContext = targetCanvas.graphicsContext2D
 
+    var scrollOffset: Vector2D = Vector2D()
+        private set
+
     var messageTag: Int? = null
 
     val gameView = View(Pane(targetCanvas)) {
@@ -52,6 +58,11 @@ abstract class Client {
         private set
 
     var gameDeserializer: GameDeserializer = MainGameDeserializer()
+
+    var scrollController: ScrollController = EntityFocusScreenController()
+
+    var thisPlayer: Entity? = null
+        private set
 
     private val entityDeserializers: MutableMap<Int, EntityDeserializer> = mutableMapOf()
 
@@ -101,7 +112,13 @@ abstract class Client {
     fun getRendererDeserializer(identifier: Int): RendererDeserializer? = rendererDeserializers[identifier]
 
     fun setAllEntities(entities: MutableList<Entity>) {
-        this.setAllEntitiesCache = entities
+//        this.setAllEntitiesCache = entities
+        this.entities = entities
+        thisPlayer = null
+        for (ent in entities) if (ent.isThisPlayer) {
+            if (thisPlayer == null) thisPlayer = ent
+            else Conf.logger.warning("There are two thisPlayer-Entities currently in the game!")
+        }
     }
 
     internal fun tick() {
@@ -111,6 +128,7 @@ abstract class Client {
         if (setAllEntitiesCache != null) entities = setAllEntitiesCache as MutableList<Entity>
         for (entity in addEntitiesCache) entities.add(entity)
         addEntitiesCache.clear()
+        scrollOffset = scrollController.getScroll(this)
         render()
     }
 
@@ -141,7 +159,11 @@ abstract class Client {
     }
 
     fun addEntity(entity: Entity) {
-        addEntitiesCache.add(entity)
+        entities.add(entity)
+        if (entity.isThisPlayer) {
+            if (thisPlayer == null) thisPlayer = entity
+            else Conf.logger.warning("There are two thisPlayer-Entities currently in the game!")
+        }
     }
 
     fun addResource(identifier: String, resource: Resource) {
@@ -149,6 +171,14 @@ abstract class Client {
     }
 
     fun getResource(identifier: String): Resource? = resources[identifier]
+
+    fun scrollTo(scroll: Vector2D) {
+        scrollOffset = scroll
+    }
+
+    fun translateScroll(translation: Vector2D) {
+        scrollOffset += translation
+    }
 
     abstract fun initialize()
 

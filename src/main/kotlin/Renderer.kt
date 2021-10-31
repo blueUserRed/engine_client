@@ -13,7 +13,8 @@ interface Renderer {
     companion object {
 
         fun gameCoordsToScreenCoords(gameCoords: Vector2D, client: Client): Vector2D {
-            return Vector2D(gameCoords.x, client.targetCanvas.height - gameCoords.y - 30.0)
+            val scroll = client.scrollOffset
+            return Vector2D(gameCoords.x - scroll.x, client.targetCanvas.height - (gameCoords.y - scroll.y) - 30.0)
         }
 
         fun gameCoordsToScreenCoords(gameCoords: Array<Vector2D>, client: Client): Array<Vector2D> {
@@ -24,6 +25,7 @@ interface Renderer {
             client.addRendererDeserializer(EmptyRenderer.identifier) { _, _, _ -> EmptyRenderer() }
             client.addRendererDeserializer(PolyColorRenderer.identifier, PolyColorRenderer.Companion::deserialize)
             client.addRendererDeserializer(PolyImageRenderer.identifier, PolyImageRenderer.Companion::deserialize)
+            client.addRendererDeserializer(CircleColorRenderer.identifier, CircleColorRenderer.Companion::deserialize)
         }
 
         fun deserialize(input: DataInputStream, client: Client, ent: Entity): Renderer? {
@@ -72,7 +74,7 @@ class PolyColorRenderer(val ent: PolygonEntity) : Renderer {
 
     companion object {
 
-        val identifier: Int = Int.MAX_VALUE - 1
+        const val identifier: Int = Int.MAX_VALUE - 1
 
         fun deserialize(input: DataInputStream, ent: Entity, client: Client): PolyColorRenderer? {
             if (ent !is PolygonEntity) return null
@@ -125,6 +127,33 @@ class PolyImageRenderer(
             return PolyImageRenderer(ent, resource, offset, width, height)
         }
     }
+}
+
+class CircleColorRenderer(val ent: CircleEntity) : Renderer {
+
+    override val identifier: Int = Int.MAX_VALUE - 3
+
+    var color: Color = Color.valueOf("#8800cc")
+
+    override fun render(gc: GraphicsContext, client: Client) {
+        gc.fill = color
+        val pos = Renderer.gameCoordsToScreenCoords(ent.position - Vector2D(ent.radius), client)
+        gc.fillOval(pos.x, pos.y, ent.radius * 2, ent.radius * 2)
+    }
+
+    companion object {
+
+        const val identifier: Int = Int.MAX_VALUE - 3
+
+        fun deserialize(input: DataInputStream, ent: Entity, client: Client): CircleColorRenderer? {
+            if (ent !is CircleEntity) return null
+            val color = Color.color(input.readDouble(), input.readDouble(), input.readDouble())
+            val renderer = CircleColorRenderer(ent)
+            renderer.color = color
+            return renderer
+        }
+    }
+
 }
 
 //

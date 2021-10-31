@@ -92,7 +92,7 @@ class ServerConnection(val ip: String, val port: Int, val client: Client) : Thre
 
     fun isActive() = socket.isClosed
 
-    fun blockUntilConnected() {
+    fun waitUntilConnected() {
         while(!isInitialized) { }
     }
 

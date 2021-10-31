@@ -139,3 +139,7 @@ fun Long.toByteArray(): Array<Byte> {
 fun Double.toDeg() = this * 57.2958
 
 fun Double.toRad() = this / 57.2958
+
+fun Double.compare(other: Double, epsilon: Double = 0.01): Boolean {
+    return Utils.compareDouble(this, other, epsilon)
+}
