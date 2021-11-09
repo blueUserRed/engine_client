@@ -47,6 +47,12 @@ class PolygonEntity(
             }
         }
 
+    fun getScaledVerts(scale: Double): Array<Vector2D> {
+        return Array(verticesRelative.size) {
+            Utils.rotatePointAroundPoint(verticesRelative[it] + this.position, position, rotation)
+        }
+    }
+
     override fun render(gc: GraphicsContext, client: Client) {
         renderer.render(gc, client)
     }

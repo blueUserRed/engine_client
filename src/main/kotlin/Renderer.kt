@@ -60,16 +60,18 @@ class PolyColorRenderer(val ent: PolygonEntity) : Renderer {
 
     override val identifier: Int = Int.MAX_VALUE - 1
 
+    var scale: Double = 1.0
+
     var color: Color = Color.valueOf("#8800cc")
 
     override fun render(gc: GraphicsContext, client: Client) {
-        val verts = Renderer.gameCoordsToScreenCoords(this.ent.verticesAbsolute, client)
+        val verts = Renderer.gameCoordsToScreenCoords(this.ent.getScaledVerts(scale), client)
         gc.fill = this.color
         gc.fillPolygon(extractXPoints(verts), extractYPoints(verts), verts.size)
 
-        gc.fill = Color.valueOf("#00ff00")
-        val centroid = Renderer.gameCoordsToScreenCoords(this.ent.position, client)
-        gc.fillOval(centroid.x - 5, centroid.y - 5, 10.0, 10.0)
+//        gc.fill = Color.valueOf("#00ff00")
+//        val centroid = Renderer.gameCoordsToScreenCoords(this.ent.position, client)
+//        gc.fillOval(centroid.x - 5, centroid.y - 5, 10.0, 10.0)
     }
 
     companion object {
@@ -80,6 +82,7 @@ class PolyColorRenderer(val ent: PolygonEntity) : Renderer {
             if (ent !is PolygonEntity) return null
             val color = Color.color(input.readDouble(), input.readDouble(), input.readDouble())
             val renderer = PolyColorRenderer(ent)
+            renderer.scale = input.readDouble()
             renderer.color = color
             return renderer
         }

@@ -51,7 +51,12 @@ abstract class Client {
         it.height = 600.0
         targetCanvas.width = 800.0
         targetCanvas.height = 600.0
-        it.resizableProperty().value = false //TODO: fix
+        it.widthProperty().addListener { _, _, new ->
+            targetCanvas.width = new.toDouble()
+        }
+        it.heightProperty().addListener { _, _, new ->
+            targetCanvas.height = new.toDouble()
+        }
     }
 
     lateinit var args: Array<String>
