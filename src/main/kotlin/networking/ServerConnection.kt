@@ -9,21 +9,17 @@ import java.util.logging.Level
 
 class ServerConnection(val ip: String, val port: Int, val client: Client) : Thread() {
 
-    private lateinit var socket: Socket
-    private lateinit var input: DataInputStream
-    private lateinit var output: DataOutputStream
+    private var socket: Socket = Socket(ip , port)
+    private var input: DataInputStream = DataInputStream(socket.getInputStream())
+    private var output: DataOutputStream = DataOutputStream(socket.getOutputStream())
 
-    private var isInitialized: Boolean = false
+    private var isInitialized: Boolean = true
 
     private val messageDeserializers: MutableMap<String, ClientMessageDeserializer> = mutableMapOf()
 
     private var stop: Boolean = false
 
     override fun run() {
-        socket = Socket(ip , port)
-        input = DataInputStream(socket.getInputStream())
-        output = DataOutputStream(socket.getOutputStream())
-        isInitialized = true
         while(!stop) {
             try {
                 val identifier = input.readUTF()
