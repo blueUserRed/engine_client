@@ -2,6 +2,7 @@ import controllers.EntityFocusScreenController
 import controllers.GameDeserializer
 import controllers.MainGameDeserializer
 import controllers.ScrollController
+import javafx.application.Platform
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
 import javafx.scene.layout.Pane
@@ -137,7 +138,7 @@ abstract class Client {
         render()
     }
 
-    private fun render() {
+    private fun render() = Platform.runLater {
         if (lastFrameCountTime + 1000 <= System.currentTimeMillis()) {
             lastFrameCountTime = System.currentTimeMillis()
             frameRate = curFrameCount
