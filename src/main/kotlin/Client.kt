@@ -47,7 +47,7 @@ abstract class Client {
 
     var messageTag: Int? = null
 
-    val gameView = View(Pane(targetCanvas)) {
+    val gameView = View(Pane(targetCanvas), null) {
         it.width = 800.0
         it.height = 600.0
         targetCanvas.width = 800.0

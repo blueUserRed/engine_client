@@ -49,4 +49,4 @@ class ViewManager (private val stage: Stage) {
     }
 }
 
-class View (val pane: Pane, val init: (Stage) -> Unit)
+class View (val pane: Pane, val controller: Any?,  val init: (Stage) -> Unit)
