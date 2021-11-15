@@ -3,22 +3,37 @@ package networking
 import Client
 import Entity
 import javafx.scene.input.KeyCode
-import utils.Stopwatch
-import utils.Utils
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.lang.IllegalStateException
-import java.security.Key
 
+/**
+ * a message that can be sent over the network
+ */
 abstract class Message {
 
+    /**
+     * the identifier that is used to uniquely identify a type of message. Should be the class-name
+     */
     abstract val identifier: String
 
+    /**
+     * this function is called when this message is received
+     * @param client the client
+     */
     abstract fun execute(client: Client)
+
+    /**
+     * serializes the message so it can be sent over the network
+     */
     abstract fun serialize(output: DataOutputStream)
 
     companion object {
-        fun registerDeserializers(client: Client) {
+
+        /**
+         * registers the deserializers for build-in messages
+         */
+        internal fun registerDeserializers(client: Client) {
             client.serverConnection?.addMessageDeserializer("HeartBeat") {
                 HeartBeatMessage(it.readBoolean(), it.readUTF())
             }
@@ -36,6 +51,11 @@ abstract class Message {
 
 }
 
+/**
+ * a Heartbeatmessage; if it is received the client will send a response with the same testString
+ * @param isResponse stores if the message is an initial request or a response. This used to decide whether to send
+ * an answer or not
+ */
 class HeartBeatMessage(val isResponse: Boolean, val testString: String) : Message() {
 
     override val identifier: String = "HeartBeat"
@@ -52,6 +72,9 @@ class HeartBeatMessage(val isResponse: Boolean, val testString: String) : Messag
 
 }
 
+/**
+ * a message containing a completely serialized game
+ */
 class FullUpdateMessage(private val entities: MutableList<Entity>) : Message() {
 
     override val identifier: String = "fullUpdt"
@@ -66,6 +89,10 @@ class FullUpdateMessage(private val entities: MutableList<Entity>) : Message() {
     }
 
     companion object {
+
+        /**
+         * deserializes the message
+         */
         fun deserialize(input: DataInputStream, client: Client): FullUpdateMessage? {
             val entities = client.gameDeserializer.deserialize(input, client)
             return if (entities == null) null else FullUpdateMessage(entities)
@@ -73,6 +100,10 @@ class FullUpdateMessage(private val entities: MutableList<Entity>) : Message() {
     }
 }
 
+/**
+ * is sent from the client to the server and contains information from the client, like keyInputs
+ * @param keys the currently pressed keys
+ */
 class ClientInfoMessage(private val keys: Set<KeyCode>) : Message() {
 
     override val identifier: String = "clInfo"
@@ -89,6 +120,9 @@ class ClientInfoMessage(private val keys: Set<KeyCode>) : Message() {
 
     companion object {
 
+        /**
+         * deserializes the message
+         */
         fun deserialize(input: DataInputStream): ClientInfoMessage? {
             val keys = mutableSetOf<KeyCode>()
             val num = input.readInt()
@@ -107,6 +141,9 @@ class ClientInfoMessage(private val keys: Set<KeyCode>) : Message() {
 
 }
 
+/**
+ * a message to update the state of the game
+ */
 class IncrementalUpdateMessage : Message() {
 
     override val identifier: String = "incUpdt"
@@ -119,6 +156,10 @@ class IncrementalUpdateMessage : Message() {
     }
 
     companion object {
+
+        /**
+         * deserializes the message
+         */
         fun deserialize(input: DataInputStream, client: Client): IncrementalUpdateMessage? {
             val success = client.gameDeserializer.deserializeInc(input, client)
             return if (success) IncrementalUpdateMessage() else null

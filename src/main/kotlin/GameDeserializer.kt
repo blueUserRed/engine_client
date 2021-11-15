@@ -1,12 +1,32 @@
 import java.io.DataInputStream
 import java.util.*
 
+/**
+ * deserializes the game after it was sent over network
+ */
 abstract class GameDeserializer {
 
+    /**
+     * deserializes from a full update
+     * @param input the inputStream
+     * @param client the client
+     * @return the new list of entities; null if it couldn't be deserialized
+     */
     abstract fun deserialize(input: DataInputStream, client: Client): MutableList<Entity>?
+
+    /**
+     * deserializes the game form an incremental update
+     * @param input the inputStream
+     * @param client the client
+     * @return true if the game was deserialized successfully
+     */
     abstract fun deserializeInc(input: DataInputStream, client: Client): Boolean
 
     companion object {
+
+        /**
+         * used to automatically add deserializers for build-in entities
+         */
         internal fun registerDeserializers(client: Client) {
             client.addEntityDeserializer(PolygonEntity.identifier) { PolygonEntity.deserialize(it, client) }
             client.addEntityDeserializer(CircleEntity.identifier) { CircleEntity.deserialize(it, client) }
@@ -14,6 +34,9 @@ abstract class GameDeserializer {
     }
 }
 
+/**
+ * the default gameDeserializer
+ */
 class MainGameDeserializer : GameDeserializer() {
 
     override fun deserialize(input: DataInputStream, client: Client): MutableList<Entity>? {

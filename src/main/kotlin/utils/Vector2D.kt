@@ -4,22 +4,38 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import kotlin.math.sqrt
 
+/**
+ * a Vector2D
+ */
 class Vector2D (val x: Double, val y: Double) {
 
     constructor() : this(0.0, 0.0)
     constructor(x: Int, y: Int) : this(x.toDouble(), y.toDouble())
+
+    /**
+     * same as Vector2D(n, n)
+     */
     constructor(n: Double) : this(n, n)
+
+    /**
+     * same as Vector2D(n, n)
+     */
     constructor(n: Int) : this(n, n)
 
-    val mag: Double
-        get() = sqrt(this.x * this.x + this.y * this.y)
+    val mag: Double = sqrt(this.x * this.x + this.y * this.y)
 
+    /**
+     * a vector with the same direction but magnitude 1
+     */
     val unit: Vector2D
         get() {
             if (this.mag == 0.0) return Vector2D(0.0, 0.0)
             return this / this.mag
         }
 
+    /**
+     * the vector that is perpendicular to this vector
+     */
     val normal: Vector2D
         get() = Vector2D(-this.y, this.x)
 
