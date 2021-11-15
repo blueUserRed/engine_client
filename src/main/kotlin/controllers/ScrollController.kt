@@ -5,13 +5,35 @@ import Entity
 import utils.Vector2D
 import utils.compare
 
+/**
+ * controls the camera position
+ */
 abstract class ScrollController {
+
+    /**
+     * get the new scroll-offset
+     * @param client the client
+     * @return the offset of the camera from 0,0
+     */
     abstract fun getScroll(client: Client): Vector2D
 }
 
+/**
+ * the default ScrollController
+ *
+ * Tries to keep [focusedEntity] in the middle of the screen. If [focusedEntity] is null if falls back to
+ * [thisPlayer][Client.thisPlayer].
+ */
 class EntityFocusScreenController : ScrollController() {
 
+    /**
+     * the speed at which the camera follows the [focusedEntity]
+     */
     var scrollSpeed: Double = 5.0
+
+    /**
+     * the controller tries to keep this entity in the middle of the screen
+     */
     var focusedEntity: Entity? = null
 
     override fun getScroll(client: Client): Vector2D {
