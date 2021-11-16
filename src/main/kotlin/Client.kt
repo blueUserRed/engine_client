@@ -3,6 +3,8 @@ import controllers.ScrollController
 import javafx.application.Platform
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
+import javafx.scene.input.KeyCode
+import javafx.scene.input.KeyCombination
 import javafx.scene.layout.Pane
 import javafx.scene.paint.Color
 import networking.ClientInfoMessage
@@ -114,6 +116,7 @@ abstract class Client {
         it.heightProperty().addListener { _, _, new ->
             targetCanvas.height = new.toDouble()
         }
+        it.isResizable = true
     }
 
     /**
@@ -274,10 +277,12 @@ abstract class Client {
         }
         gc.fill = Color.valueOf("#000000")
         gc.fillRect(0.0, 0.0, targetCanvas.width, targetCanvas.height)
-        for (entity in entities) {
-            gc.save()
-            entity.render(gc, this)
-            gc.restore()
+        synchronized(entities) {
+            for (entity in entities) {
+                gc.save()
+                entity.render(gc, this)
+                gc.restore()
+            }
         }
     }
 
