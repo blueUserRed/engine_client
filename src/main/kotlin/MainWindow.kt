@@ -42,11 +42,33 @@ class ViewManager (private val stage: Stage) {
     var currentView: View? = null
         private set
 
+    private val overlays: MutableList<View> = mutableListOf()
+
+    private val mainGroup: Group = Group()
+
+    init {
+        stage.scene.root = mainGroup
+    }
+
     fun changeView(view: View) {
         this.currentView = view
-        this.stage.scene.root = view.pane
-        view.init(this.stage)
+        mainGroup.children.remove(currentView?.pane)
+        mainGroup.children.add(view.pane)
+        view.init(stage)
     }
+
+    fun putOverlay(overlay: View) {
+        mainGroup.children.add(overlay.pane)
+        overlay.pane.toFront()
+        overlays.add(overlay)
+        overlay.init(stage)
+    }
+
+    fun removeOverlay(overlay: View) {
+        mainGroup.children.remove(overlay.pane)
+        overlays.remove(overlay)
+    }
+
 }
 
 class View (val pane: Pane, val controller: Any?,  val init: (Stage) -> Unit)
