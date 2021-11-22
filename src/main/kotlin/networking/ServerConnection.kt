@@ -38,6 +38,8 @@ class ServerConnection(val ip: String, val port: Int, val client: Client) : Thre
      */
     private var stop: Boolean = false
 
+    private val onStopCallbacks: MutableList<() -> Unit> = mutableListOf()
+
     override fun run() {
         while(!stop) {
             try {
@@ -58,6 +60,7 @@ class ServerConnection(val ip: String, val port: Int, val client: Client) : Thre
                 for (i in 1..7) input.readByte() //trailer
             } catch (e: IOException) { break }
         }
+        for (callback in onStopCallbacks) callback()
     }
 
     /**
@@ -142,6 +145,20 @@ class ServerConnection(val ip: String, val port: Int, val client: Client) : Thre
         socket.close()
         input.close()
         output.close()
+    }
+
+    /**
+     * adds a callback that is executed when the connection is closed
+     */
+    fun addOnStopCallback(callback: () -> Unit) {
+        onStopCallbacks.add(callback)
+    }
+
+    /**
+     * removes a callback that was previously added using [addOnStopCallback]
+     */
+    fun removeOnStopCallback(callback: () -> Unit) {
+        onStopCallbacks.remove(callback)
     }
 
 }
