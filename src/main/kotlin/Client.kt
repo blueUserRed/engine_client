@@ -197,11 +197,19 @@ abstract class Client {
     }
 
     /**
-     * resets the game tag to 0
-     * @see messageTag
+     * resets all entities and resources
      */
-    fun leaveGame() {
+    open fun leaveGame() {
         messageTag = 0
+        inGame = false
+        entities.clear()
+        setAllEntitiesCache?.clear()
+        addEntitiesCache.clear()
+        resources.clear()
+        thisPlayer = null
+        scrollOffset = Vector2D()
+        if (scrollController is EntityFocusScreenController)
+            (scrollController as EntityFocusScreenController).focusedEntity = null
     }
 
     /**
@@ -241,6 +249,7 @@ abstract class Client {
      */
     fun setAllEntities(entities: MutableList<Entity>) {
 //        this.setAllEntitiesCache = entities
+        if (!inGame) return
         this.entities = entities
         thisPlayer = null
         for (ent in entities) if (ent.isThisPlayer) {
@@ -309,6 +318,7 @@ abstract class Client {
      * @param entity the entity that should be added
      */
     fun addEntity(entity: Entity) {
+        if (!inGame) return
         entities.add(entity)
         if (entity.isThisPlayer) {
             if (thisPlayer == null) thisPlayer = entity

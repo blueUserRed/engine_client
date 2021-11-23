@@ -5,6 +5,7 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
 import java.net.Socket
+import java.net.SocketException
 import java.util.logging.Level
 
 /**
@@ -117,13 +118,13 @@ class ServerConnection(val ip: String, val port: Int, val client: Client) : Thre
     * sends a message to the server
     * @param message the message that should be sent
     */
-    fun send(message: Message) {
+    fun send(message: Message) = try {
         output.writeInt(client.messageTag ?: 0)
         output.writeUTF(message.identifier)
         message.serialize(output)
         sendTrailer(output)
         output.flush()
-    }
+    } catch (e: SocketException) { close() }
 
     /**
     * @return true if the connection is active
