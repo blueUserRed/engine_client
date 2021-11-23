@@ -1,4 +1,5 @@
 import javafx.application.Application
+import javafx.application.Platform
 import javafx.scene.Group
 import javafx.scene.Scene
 import javafx.scene.layout.Pane
@@ -17,9 +18,9 @@ class MainWindow : Application() {
 
     override fun start(primaryStage: Stage?) {
         if (primaryStage == null) return
-        viewManager = ViewManager(primaryStage)
         stage = primaryStage
         primaryStage.scene = Scene(Group())
+        viewManager = ViewManager(primaryStage)
         primaryStage.addEventHandler(KeyEvent.KEY_PRESSED) { client?.keyPressHelper?.startPress(it.code) }
         primaryStage.addEventHandler(KeyEvent.KEY_RELEASED) { client?.keyPressHelper?.endPress(it.code) }
         client?.onInitialize()
@@ -37,23 +38,20 @@ class MainWindow : Application() {
     }
 }
 
-class ViewManager (private val stage: Stage) {
+class ViewManager internal constructor (private val stage: Stage) {
 
     var currentView: View? = null
         private set
 
     private val overlays: MutableList<View> = mutableListOf()
 
-    private val mainGroup: Group = Group()
-
-    init {
-        stage.scene.root = mainGroup
-    }
+    private val mainGroup: Group = stage.scene.root as Group
 
     fun changeView(view: View) {
-        this.currentView = view
+        currentView?.finish?.invoke(stage)
         mainGroup.children.remove(currentView?.pane)
         mainGroup.children.add(view.pane)
+        currentView = view
         view.init(stage)
     }
 
@@ -65,10 +63,13 @@ class ViewManager (private val stage: Stage) {
     }
 
     fun removeOverlay(overlay: View) {
+        overlay.finish?.invoke(stage)
         mainGroup.children.remove(overlay.pane)
         overlays.remove(overlay)
     }
 
 }
 
-class View (val pane: Pane, val controller: Any?,  val init: (Stage) -> Unit)
+class View (val pane: Pane, val controller: Any?,  val init: (Stage) -> Unit) {
+    var finish: ((Stage) -> Unit)? = null
+}
