@@ -10,7 +10,9 @@ abstract class Entity(var position: Vector2D, var rotation: Double, var uuid: UU
         protected set
 
     abstract val identifier: Int
+
     abstract fun render(gc: GraphicsContext, client: Client)
+    open fun renderBg(gc: GraphicsContext, client: Client) { }
 
     open fun deserializeInc(input: DataInputStream, client: Client) {
         var tag = input.readByte()
@@ -26,7 +28,7 @@ abstract class Entity(var position: Vector2D, var rotation: Double, var uuid: UU
 
 }
 
-class PolygonEntity(
+open class PolygonEntity(
     position: Vector2D,
     vertices: Array<Vector2D>,
     rotation: Double,
