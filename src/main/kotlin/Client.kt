@@ -116,7 +116,6 @@ abstract class Client {
         it.heightProperty().addListener { _, _, new ->
             targetCanvas.height = new.toDouble()
         }
-        it.isResizable = true
     }
 
     /**
@@ -287,6 +286,11 @@ abstract class Client {
         gc.fill = Color.valueOf("#000000")
         gc.fillRect(0.0, 0.0, targetCanvas.width, targetCanvas.height)
         synchronized(entities) {
+            for (entity in entities) {
+                gc.save()
+                entity.renderBg(gc, this)
+                gc.restore()
+            }
             for (entity in entities) {
                 gc.save()
                 entity.render(gc, this)
