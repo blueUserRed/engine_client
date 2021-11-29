@@ -34,7 +34,7 @@ class MainWindow : Application() {
 
     override fun stop() {
         super.stop()
-         client?.close()
+        client?.close()
     }
 }
 
