@@ -1,6 +1,4 @@
 import controllers.EntityFocusScreenController
-import controllers.GameDeserializer
-import controllers.MainGameDeserializer
 import controllers.ScrollController
 import javafx.application.Platform
 import javafx.scene.canvas.Canvas

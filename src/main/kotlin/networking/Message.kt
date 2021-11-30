@@ -113,9 +113,10 @@ class ClientInfoMessage(private val keys: Set<KeyCode>) : Message() {
     }
 
     override fun serialize(output: DataOutputStream) {
-        output.writeInt(keys.size)
-        val copy = keys.toMutableList()
-        for (key in copy) output.writeInt(key.code)
+        synchronized(keys) {
+            output.writeInt(keys.size)
+            for (key in keys) output.writeInt(key.code)
+        }
     }
 
     companion object {
