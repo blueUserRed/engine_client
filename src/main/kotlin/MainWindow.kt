@@ -70,6 +70,6 @@ class ViewManager internal constructor (private val stage: Stage) {
 
 }
 
-class View (val pane: Pane, val controller: Any?,  val init: (Stage) -> Unit) {
+open class View (open val pane: Pane, open val controller: Any?, open val init: (Stage) -> Unit) {
     var finish: ((Stage) -> Unit)? = null
 }

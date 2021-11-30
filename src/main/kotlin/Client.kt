@@ -118,7 +118,6 @@ abstract class Client {
         it.heightProperty().addListener { _, _, new ->
             targetCanvas.height = new.toDouble()
         }
-        it.isResizable = true
     }
 
     /**
@@ -157,6 +156,11 @@ abstract class Client {
      * list containing all resources
      */
     private val resources: MutableMap<String, Resource> = mutableMapOf()
+
+    /**
+     * list containing all onUpdateCallbacks
+     */
+    private val onUpdateCallbacks: MutableList<() -> Unit> = mutableListOf()
 
     /**
      * launches the client
@@ -271,6 +275,7 @@ abstract class Client {
         for (entity in addEntitiesCache) entities.add(entity)
         addEntitiesCache.clear()
         scrollOffset = scrollController.getScroll(this)
+        for (callback in onUpdateCallbacks) callback()
         render()
     }
 
@@ -363,6 +368,20 @@ abstract class Client {
      */
     fun translateScroll(translation: Vector2D) {
         scrollOffset += translation
+    }
+
+    /**
+     * adds a new callback that is called every update
+     */
+    fun addOnUpdateCallback(callback: () -> Unit) {
+        onUpdateCallbacks.add(callback)
+    }
+
+    /**
+     * removes a callback that was added using [addOnUpdateCallback]
+     */
+    fun removeOnUpdateCallback(callback: () -> Unit) {
+        onUpdateCallbacks.remove(callback)
     }
 
     /**
