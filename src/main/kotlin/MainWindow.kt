@@ -21,8 +21,6 @@ class MainWindow : Application() {
         stage = primaryStage
         primaryStage.scene = Scene(Group())
         viewManager = ViewManager(primaryStage)
-        primaryStage.addEventHandler(KeyEvent.KEY_PRESSED) { client?.keyPressHelper?.startPress(it.code) }
-        primaryStage.addEventHandler(KeyEvent.KEY_RELEASED) { client?.keyPressHelper?.endPress(it.code) }
         client?.onInitialize()
         primaryStage.show()
     }

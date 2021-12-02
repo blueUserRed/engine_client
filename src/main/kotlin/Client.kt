@@ -5,6 +5,7 @@ import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyCombination
+import javafx.scene.input.KeyEvent
 import javafx.scene.layout.Pane
 import javafx.scene.paint.Color
 import networking.ClientInfoMessage
@@ -103,19 +104,27 @@ abstract class Client {
     var messageTag: Int? = null
 
     /**
+     * the total amount of frames that were rendered
+     */
+    var frameCount: Long = 0
+        private set
+
+    /**
      * the view the game is rendered to
      */
-    open val gameView = View(Pane(targetCanvas), null) {
-        it.width = 800.0
-        it.height = 600.0
+    open val gameView = View(Pane(targetCanvas), null) { stage ->
+        stage.width = 800.0
+        stage.height = 600.0
         targetCanvas.width = 800.0
         targetCanvas.height = 600.0
-        it.widthProperty().addListener { _, _, new ->
+        stage.widthProperty().addListener { _, _, new ->
             targetCanvas.width = new.toDouble()
         }
-        it.heightProperty().addListener { _, _, new ->
+        stage.heightProperty().addListener { _, _, new ->
             targetCanvas.height = new.toDouble()
         }
+        stage.addEventHandler(KeyEvent.KEY_PRESSED) { keyPressHelper.startPress(it.code) }
+        stage.addEventHandler(KeyEvent.KEY_RELEASED) { keyPressHelper.endPress(it.code) }
     }
 
     /**
@@ -289,6 +298,7 @@ abstract class Client {
             println(frameRate)
             curFrameCount = 0
         }
+        frameCount++
         gc.fill = Color.valueOf("#000000")
         gc.fillRect(0.0, 0.0, targetCanvas.width, targetCanvas.height)
         synchronized(entities) {
