@@ -4,16 +4,41 @@ import utils.Vector2D
 import java.io.DataInputStream
 import java.util.*
 
+/**
+ * simplified representation of the server-entity used for rendering it on the client
+ * @param position the position of the entity
+ * @param rotation the rotation of the entity in rad
+ * @param uuid the uuid of the entity (must match an uuid on the server)
+ * @param isThisPlayer true if the entity is the player of this client
+ */
 abstract class Entity(var position: Vector2D, var rotation: Double, var uuid: UUID, val isThisPlayer: Boolean) {
 
+    /**
+     * renders the entity
+     */
     abstract var renderer: Renderer
         protected set
 
+    /**
+     * identifies the type of entity uniquely
+     */
     abstract val identifier: Int
 
-    abstract fun render(gc: GraphicsContext, client: Client)
+    /**
+     * renders the entity using the [renderer]
+     */
+    open fun render(gc: GraphicsContext, client: Client) {
+        renderer.render(gc, client)
+    }
+
+    /**
+     * renders the background of the entity
+     */
     open fun renderBg(gc: GraphicsContext, client: Client) { }
 
+    /**
+     * updates the entity according to the incrementalUpdate
+     */
     open fun deserializeInc(input: DataInputStream, client: Client) {
         var tag = input.readByte()
         while (tag != 0xff.toByte()) {
@@ -28,6 +53,15 @@ abstract class Entity(var position: Vector2D, var rotation: Double, var uuid: UU
 
 }
 
+/**
+ * represents a polygonEntity
+ * @param position the position of the entity
+ * @param vertices the vertices of the polygon _note: because this entity is only used for rendering and does
+ * not perform any physics calculations, the polygon can be concave_
+ * @param rotation the rotation of the entity in rad
+ * @param uuid the uuid of the entity (must match an uuid on the server)
+ * @param isThisPlayer true if the entity is the player of this client
+ */
 open class PolygonEntity(
     position: Vector2D,
     vertices: Array<Vector2D>,
@@ -36,12 +70,27 @@ open class PolygonEntity(
     isThisPlayer: Boolean
 ) : Entity(position, rotation, uuid, isThisPlayer) {
 
+    /**
+     * the relative vertices of the polygon
+     */
     val verticesRelative: Array<Vector2D> = Utils.getShapeWithCentroidZero(vertices)
 
+    /**
+     * renders the polygon
+     */
     override var renderer: Renderer = PolyColorRenderer(this)
 
+    /**
+     * the identifier of the polygonEntity
+     */
     override val identifier: Int = Int.MAX_VALUE
 
+    /**
+     * the absolute vertices of the polygon (the vertices in the game world)
+     *
+     * _Note: these are recalculated every time the getter is called, so instead of calling it multiple times, it is
+     * better to cache the result in a local variable._
+     */
     val verticesAbsolute: Array<Vector2D>
         get() {
             return Array(verticesRelative.size) {
@@ -49,20 +98,28 @@ open class PolygonEntity(
             }
         }
 
+    /**
+     * gets the relative vertices of the polygon scaled by a factor
+     * @param scale the scale
+     *
+     * _note: same as [verticesAbsolute]_
+     */
     fun getScaledVerts(scale: Double): Array<Vector2D> {
         return Array(verticesRelative.size) {
             Utils.rotatePointAroundPoint(verticesRelative[it] + this.position, position, rotation)
         }
     }
 
-    override fun render(gc: GraphicsContext, client: Client) {
-        renderer.render(gc, client)
-    }
-
     companion object {
 
+        /**
+         * the identifier of the polygonEntity
+         */
         const val identifier: Int = Int.MAX_VALUE
 
+        /**
+         * deserializes a PolygonEntity
+         */
         fun deserialize(input: DataInputStream, client: Client): Entity? {
             val uuid = UUID(input.readLong(), input.readLong())
             val isThisPlayer = input.readBoolean()
@@ -84,6 +141,9 @@ open class PolygonEntity(
     }
 }
 
+/**
+ * dosent work, dont worry about it
+ */
 class CircleEntity(
     position: Vector2D,
     rotation: Double,

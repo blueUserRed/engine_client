@@ -4,23 +4,45 @@ import utils.Vector2D
 import utils.toDeg
 import java.io.DataInputStream
 
+/**
+ * a renderer that renders an entity to a canvas
+ */
 interface Renderer {
 
+    /**
+     * identifiers the renderer-type uniquely
+     */
     val identifier: Int
 
+    /**
+     * renders to the canvas
+     */
     fun render(gc: GraphicsContext, client: Client)
 
     companion object {
 
+        /**
+         * calculates the coords on the screen from the in-game coords
+         * @param gameCoords the in-game coords
+         * @param client the client
+         */
         fun gameCoordsToScreenCoords(gameCoords: Vector2D, client: Client): Vector2D {
             val scroll = client.scrollOffset
             return Vector2D(gameCoords.x - scroll.x, client.targetCanvas.height - (gameCoords.y - scroll.y) - 30.0)
         }
 
+        /**
+         * calculates the coords on the screen from the in-game coords
+         * @param gameCoords the in-game coords
+         * @param client the client
+         */
         fun gameCoordsToScreenCoords(gameCoords: Array<Vector2D>, client: Client): Array<Vector2D> {
             return Array(gameCoords.size) { gameCoordsToScreenCoords(gameCoords[it], client) }
         }
 
+        /**
+         * registers the deserializers for the built-in renderers
+         */
         internal fun registerRendererDeserializers(client: Client) {
             client.addRendererDeserializer(EmptyRenderer.identifier) { _, _, _ -> EmptyRenderer() }
             client.addRendererDeserializer(PolyColorRenderer.identifier, PolyColorRenderer.Companion::deserialize)
@@ -28,6 +50,10 @@ interface Renderer {
             client.addRendererDeserializer(CircleColorRenderer.identifier, CircleColorRenderer.Companion::deserialize)
         }
 
+        /**
+         * deserializes a renderer
+         * @param ent the entity to which the renderer belongs
+         */
         fun deserialize(input: DataInputStream, client: Client, ent: Entity): Renderer? {
             val identifier = input.readInt()
             val deserializer = client.getRendererDeserializer(identifier) ?: run {
@@ -43,6 +69,9 @@ interface Renderer {
     }
 }
 
+/**
+ * renders nothing
+ */
 class EmptyRenderer : Renderer {
 
     override val identifier: Int = Int.MAX_VALUE
@@ -56,12 +85,21 @@ class EmptyRenderer : Renderer {
 
 }
 
+/**
+ * renders a polygonEntity in a certain color
+ */
 class PolyColorRenderer(val ent: PolygonEntity) : Renderer {
 
     override val identifier: Int = Int.MAX_VALUE - 1
 
+    /**
+     * the scale at which the polygon is rendered
+     */
     var scale: Double = 1.0
 
+    /**
+     * the color in which the polygon is rendered
+     */
     var color: Color = Color.valueOf("#8800cc")
 
     override fun render(gc: GraphicsContext, client: Client) {
@@ -78,6 +116,9 @@ class PolyColorRenderer(val ent: PolygonEntity) : Renderer {
 
         const val identifier: Int = Int.MAX_VALUE - 1
 
+        /**
+         * deserializes a PolyColorRenderer
+         */
         fun deserialize(input: DataInputStream, ent: Entity, client: Client): PolyColorRenderer? {
             if (ent !is PolygonEntity) return null
             val color = Color.color(input.readDouble(), input.readDouble(), input.readDouble())
@@ -90,12 +131,21 @@ class PolyColorRenderer(val ent: PolygonEntity) : Renderer {
 
 }
 
+/**
+ * renders a polygonEntity using an image
+ * @param ent the polygonEntity
+ * @param imageRes the resource used for rendering
+ * @param offset the offset at which the image is renderd
+ * @param width the width of the image
+ * @param height the height of the image
+ */
 class PolyImageRenderer(
     val ent: PolygonEntity,
     val imageRes: ImageResource,
     var offset: Vector2D,
     val width: Double,
-    val height: Double) : Renderer {
+    val height: Double
+) : Renderer {
 
     override val identifier: Int = Int.MAX_VALUE - 2
 
@@ -117,6 +167,9 @@ class PolyImageRenderer(
 
         val identifier: Int = Int.MAX_VALUE - 2
 
+        /**
+         * deserializes a PolyImageRenderer
+         */
         fun deserialize(input: DataInputStream, ent: Entity, client: Client): PolyImageRenderer? {
             if (ent !is PolygonEntity) return null
             val offset = Vector2D.deserialize(input)
@@ -185,10 +238,16 @@ class CircleColorRenderer(val ent: CircleEntity) : Renderer {
 //
 //}
 
+/**
+ * gets all the x-values of an array of vertices
+ */
 private fun extractXPoints(vertices: Array<Vector2D>): DoubleArray {
     return DoubleArray(vertices.size) { vertices[it].x }
 }
 
+/**
+ * gets all the y-values of an array of vertices
+ */
 private fun extractYPoints(vertices: Array<Vector2D>): DoubleArray {
     return DoubleArray(vertices.size) { vertices[it].y }
 }
