@@ -149,6 +149,8 @@ class PolyImageRenderer(
 
     override val identifier: Int = Int.MAX_VALUE - 2
 
+    var flip: Boolean = false
+
     override fun render(gc: GraphicsContext, client: Client) {
         val absVerts = ent.verticesAbsolute
         val verts = Renderer.gameCoordsToScreenCoords(absVerts, client)
@@ -160,6 +162,7 @@ class PolyImageRenderer(
         val screenPos = Renderer.gameCoordsToScreenCoords(ent.position, client)
         gc.translate(screenPos.x, screenPos.y)
         gc.rotate(ent.rotation.toDeg())
+        if (flip) gc.scale(-1.0, 1.0)
         gc.drawImage(imageRes.image, offset.x, -offset.y, width, height)
     }
 
@@ -175,12 +178,16 @@ class PolyImageRenderer(
             val offset = Vector2D.deserialize(input)
             val width = input.readDouble()
             val height = input.readDouble()
-            val resource = client.getResource(input.readUTF())
+            val resId = input.readUTF()
+            val resource = client.getResource(resId)
             if (resource == null || resource !is ImageResource) {
-                Conf.logger.warning("Resource '$identifier' does not exist or is not ImageResource")
+                Conf.logger.warning("Resource '$resId' does not exist or is not ImageResource")
                 return null
             }
-            return PolyImageRenderer(ent, resource, offset, width, height)
+            val flip = input.readBoolean()
+            val polyImageRenderer = PolyImageRenderer(ent, resource, offset, width, height)
+            polyImageRenderer.flip = flip
+            return polyImageRenderer
         }
     }
 }
