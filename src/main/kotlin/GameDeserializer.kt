@@ -85,6 +85,17 @@ class MainGameDeserializer : GameDeserializer() {
             ent.deserializeInc(input, client)
             identifier = input.readInt()
         }
+        identifier = input.readInt()
+        while (identifier != Int.MIN_VALUE) {
+            val uuid = UUID(input.readLong(), input.readLong())
+
+            client.getEntity(uuid)?.markForRemoval() ?: run {
+                Conf.logger.warning("Couldn't remove entity with uuid $uuid because it doesn't exist!")
+                return false
+            }
+
+            identifier = input.readInt()
+        }
         return true
     }
 

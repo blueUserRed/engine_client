@@ -24,6 +24,9 @@ abstract class Entity(var position: Vector2D, var rotation: Double, var uuid: UU
      */
     abstract val identifier: Int
 
+    var isMarkedForRemoval: Boolean = false
+        internal set
+
     /**
      * renders the entity using the [renderer]
      */
@@ -35,6 +38,13 @@ abstract class Entity(var position: Vector2D, var rotation: Double, var uuid: UU
      * renders the background of the entity
      */
     open fun renderBg(gc: GraphicsContext, client: Client) { }
+
+    /**
+     * marks the entity for removal _(only on the client, not on the server!)_
+     */
+    fun markForRemoval() {
+        isMarkedForRemoval = true
+    }
 
     /**
      * updates the entity according to the incrementalUpdate

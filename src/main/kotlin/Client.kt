@@ -283,6 +283,8 @@ abstract class Client {
         addEntitiesCache.clear()
         scrollOffset = scrollController.getScroll(this)
         for (callback in onUpdateCallbacks) callback()
+        val entsIt = entities.iterator()
+        while(entsIt.hasNext()) if (entsIt.next().isMarkedForRemoval) entsIt.remove()
         render()
     }
 
