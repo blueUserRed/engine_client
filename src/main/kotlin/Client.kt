@@ -284,7 +284,7 @@ abstract class Client {
         scrollOffset = scrollController.getScroll(this)
         for (callback in onUpdateCallbacks) callback()
         val entsIt = entities.iterator()
-        while(entsIt.hasNext()) if (entsIt.next().isMarkedForRemoval) entsIt.remove()
+        while (entsIt.hasNext()) if (entsIt.next().isMarkedForRemoval) entsIt.remove()
         render()
     }
 
@@ -303,6 +303,7 @@ abstract class Client {
         frameCount++
         gc.fill = Color.valueOf("#000000")
         gc.fillRect(0.0, 0.0, targetCanvas.width, targetCanvas.height)
+        beforeRender(gc)
         synchronized(entities) {
             for (entity in entities) {
                 gc.save()
@@ -315,6 +316,7 @@ abstract class Client {
                 gc.restore()
             }
         }
+        afterRender(gc)
     }
 
     /**
@@ -398,6 +400,16 @@ abstract class Client {
      * called after the client has been initialized
      */
     abstract fun initialize()
+
+    /**
+     * called every frame before the game is rendered (from the javafx-thread)
+     */
+    open fun beforeRender(gc: GraphicsContext) { }
+
+    /**
+     * called every frame after the game has been rendered (from the javafx-thread)
+     */
+    open fun afterRender(gc: GraphicsContext) { }
 
 }
 
