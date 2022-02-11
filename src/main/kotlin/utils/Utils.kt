@@ -1,5 +1,12 @@
 package utils
 
+import java.nio.charset.StandardCharsets
+import java.util.*
+import javax.crypto.Cipher
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.PBEKeySpec
+import javax.crypto.spec.SecretKeySpec
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
@@ -10,6 +17,15 @@ object Utils {
      * finds the average vertex for an array of vertices
      */
     fun findVertexAverage(vertices: Array<Vector2D>): Vector2D {
+        var acc = Vector2D()
+        vertices.forEach { acc += it }
+        return acc / vertices.size.toDouble()
+    }
+
+    /**
+     * finds the average vertex for a list of vertices
+     */
+    fun findVertexAverage(vertices: List<Vector2D>): Vector2D {
         var acc = Vector2D()
         vertices.forEach { acc += it }
         return acc / vertices.size.toDouble()
@@ -141,6 +157,57 @@ object Utils {
         return true
     }
 
+    object AES {
+
+        /**
+         * the salt used for encryption
+         */
+        const val SALT: String = "l!?snf)h3-xcpni[=3jh"
+
+        /**
+         * the Iv used for encryption
+         */
+        val IV: ByteArray = byteArrayOf(13, 122, 29, -92, 101, -74, 27, -96,
+            -85, -81, 24, -90, 22, 45, 32, -113)
+
+        /**
+         * encrypts a string using a key
+         */
+        fun encrypt(input: String, key: Long): String {
+            val iv = IvParameterSpec(IV)
+
+            val secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+            val keyChars = Base64.getEncoder().encodeToString(key.toByteArray()).toCharArray()
+            val keySpec = PBEKeySpec(keyChars, SALT.toByteArray(), 65536, 256)
+
+            val secretKeySpec = SecretKeySpec(secretKeyFactory.generateSecret(keySpec).encoded, "AES")
+
+            val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, iv)
+            return Base64.getEncoder().encodeToString(
+                cipher.doFinal(input.toByteArray(StandardCharsets.UTF_8))
+            )
+        }
+
+        /**
+         * decrypts a string using a key
+         */
+        fun decrypt(input: String, key: Long): String {
+            val iv = IvParameterSpec(IV)
+
+            val secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+            val keyChars = Base64.getEncoder().encodeToString(key.toByteArray()).toCharArray()
+            val keySpec = PBEKeySpec(keyChars, SALT.toByteArray(), 65536, 256)
+
+            val secretKeySpec = SecretKeySpec(secretKeyFactory.generateSecret(keySpec).encoded, "AES")
+
+            val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, iv)
+            return String(cipher.doFinal(Base64.getDecoder().decode(input)))
+        }
+
+    }
+
 }
 
 fun Double.toDeg() = this * 57.2958
@@ -168,3 +235,58 @@ fun Char.isHexadecimal(): Boolean {
  * same as [append][java.lang.StringBuilder.append]
  */
 operator fun StringBuilder.plusAssign(other: String): Unit = run { this.append(other) }
+
+/**
+ * @return the highest double, -Double.MAX_VALUE if empty
+ */
+fun max(vararg doubles: Double): Double {
+    var max = -Double.MAX_VALUE
+    for (double in doubles) if (double > max) max = double
+    return max
+}
+
+/**
+ * @return the highest y-value, -Double.MAX_VALUE if empty
+ */
+fun maxY(vararg vectors: Vector2D): Double {
+    var max = -Double.MAX_VALUE
+    for (vector in vectors) if (vector.y > max) max = vector.y
+    return max
+}
+
+/**
+ * @return the lowest y-value, Double.MAX_VALUE if empty
+ */
+fun minY(vararg vectors: Vector2D): Double {
+    var min = Double.MAX_VALUE
+    for (vector in vectors) if (vector.y < min) min = vector.y
+    return min
+}
+
+/**
+ * the sum of all numbers in the list
+ */
+fun <T : Number> List<T>.sum(): Double {
+    var sum = 0.0
+    for (num in this) sum += num.toDouble()
+    return sum
+}
+
+/**
+ * the average of all numbers in the list
+ */
+fun <T : Number> List<T>.average(): Double {
+    var sum = 0.0
+    for (num in this) sum += num.toDouble()
+    return sum / this.size
+}
+
+fun Long.toByteArray(): ByteArray {
+    var long = this
+    val result = ByteArray(8)
+    for (i in 7 downTo 0) {
+        result[i] = (long and 0xFF).toByte()
+        long = long shl 8
+    }
+    return result
+}

@@ -1,12 +1,16 @@
 package networking
 
 import Client
+import utils.Utils
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
+import java.math.BigInteger
 import java.net.Socket
 import java.net.SocketException
+import java.security.SecureRandom
 import java.util.logging.Level
+import kotlin.random.asKotlinRandom
 
 /**
  * represents a connection to the server
@@ -39,9 +43,23 @@ class ServerConnection(val ip: String, val port: Int, val client: Client) : Thre
      */
     private var stop: Boolean = false
 
+    /**
+     * stores all callbacks that should be executed when the connection closes
+     */
     private val onStopCallbacks: MutableList<() -> Unit> = mutableListOf()
 
+    /**
+     * secret key for encrypting messages
+     */
+    private var key: Long? = null
+
     override fun run() {
+        doKeyExchange()
+        if (key == null) {
+            Conf.logger.warning("Couldnt perform key Exchange, closing connection")
+            close()
+            return
+        }
         while(!stop) {
             try {
                 val identifier = input.readUTF()
@@ -49,12 +67,12 @@ class ServerConnection(val ip: String, val port: Int, val client: Client) : Thre
                 if (deserializer == null) {
                     Conf.logger.log(Level.WARNING, "Client received message with unknown " +
                             "identifier '$identifier'")
-                    resync(input)
+                    resync()
                     continue
                 }
                 val message = deserializer(input)
                 if (message == null) {
-                    resync(input)
+                    resync()
                     continue
                 }
                 message.execute(client)
@@ -68,7 +86,7 @@ class ServerConnection(val ip: String, val port: Int, val client: Client) : Thre
      * Tries to resync the connection after the deserialization of a message failed and the client doesn't know when
      * the next one starts.
      */
-    private fun resync(input: DataInputStream) {
+    private fun resync() {
         Conf.logger.warning("ServerConnection got desynced, now attempting to resync...")
         while (true) {
             if (input.readByte() != 0xff.toByte()) continue
@@ -90,7 +108,7 @@ class ServerConnection(val ip: String, val port: Int, val client: Client) : Thre
      * sends a trailer after a message has been sent. In case of an error it can be used to resync the connection.
      * @see resync
      */
-    private fun sendTrailer(output: DataOutputStream) {
+    private fun sendTrailer() = synchronized(this) {
         output.writeByte(0xff)
         output.writeByte(0x00)
         output.writeByte(0xff)
@@ -115,20 +133,20 @@ class ServerConnection(val ip: String, val port: Int, val client: Client) : Thre
     }
 
     /**
-    * sends a message to the server
-    * @param message the message that should be sent
-    */
-    fun send(message: Message) = try {
+     * sends a message to the server
+     * @param message the message that should be sent
+     */
+    fun send(message: Message) = synchronized(this) { try {
         output.writeInt(client.messageTag ?: 0)
         output.writeUTF(message.identifier)
         message.serialize(output)
-        sendTrailer(output)
+        sendTrailer()
         output.flush()
-    } catch (e: SocketException) { close() }
+    } catch (e: SocketException) { close() } }
 
     /**
-    * @return true if the connection is active
-    */
+     * @return true if the connection is active
+     */
     fun isActive() = socket.isClosed
 
     /**
@@ -161,6 +179,62 @@ class ServerConnection(val ip: String, val port: Int, val client: Client) : Thre
     fun removeOnStopCallback(callback: () -> Unit) {
         onStopCallbacks.remove(callback)
     }
+
+    /**
+     * performs a diffie-hellman key-exchange
+     */
+    private fun doKeyExchange() = synchronized(this) {
+        val p = Hellman.PRIME
+        val b = SecureRandom().asKotlinRandom().nextInt(10_000, p.toInt())
+        val g = input.readLong()
+        val bigB = g.toBigInteger().pow(b).mod(p.toBigInteger())
+
+        val len = input.readInt()
+        val bytesA = ByteArray(len)
+        val actualRead = input.read(bytesA, 0, len)
+        if (actualRead != len) {
+            Conf.logger.warning("KeyExchange with server failed!")
+            resync()
+            return
+        }
+
+        val bytesB = bigB.toByteArray()
+        output.writeInt(bytesB.size)
+        output.write(bytesB)
+        output.flush()
+
+        val bigA = BigInteger(bytesA)
+        val k = bigA.pow(b).mod(p.toBigInteger())
+        try {
+            key = k.longValueExact()
+        } catch (e: ArithmeticException) {
+            Conf.logger.warning("KeyExchange with server failed!")
+            resync()
+        }
+    }
+
+    private object Hellman {
+        /**
+         * prime used for the diffie-hellman key-exchange
+         */
+        const val PRIME: Long = 100_169
+    }
+
+    /**
+     * encrypts and writes a string to the output stream
+     */
+    fun writeEncrypted(message: String) {
+        output.writeUTF(Utils.AES.encrypt(message, key!!))
+    }
+
+    /**
+     * reads and decrypts a string from the input stream
+     */
+    fun readEncrypted(): String {
+        return Utils.AES.decrypt(input.readUTF(), key!!)
+    }
+
+    private operator fun BigInteger.rem(n: Long): BigInteger = this.mod(BigInteger.valueOf(n))
 
 }
 
